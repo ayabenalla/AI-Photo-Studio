@@ -221,6 +221,15 @@
     function resetFilters() { brightness.value=100; contrast.value=100; saturate.value=100; rotation=0; applyFilters(); }
     function downloadImage() { const link = document.createElement('a'); link.download = 'ai-art.png'; link.href = canvas.toDataURL(); link.click(); }
   </script>
+  <!-- قسم عرض الفيديو التوضيحي -->
+<div style="text-align: center; margin: 40px auto; max-width: 800px; padding: 20px; background: #111827; border-radius: 16px; border: 1px solid #1f2937;">
+    <h2 style="color: #f9fafb; font-family: sans-serif; margin-bottom: 15px; font-size: 1.2rem;">🎥 Demo Video / فيديو توضيحي للمشروع</h2>
+    <video controls width="100%" style="border-radius: 12px; max-height: 450px; background: #000;">
+        <source src="VID_20260815_051252.mp4" type="video/mp4">
+        Your browser does not support the video tag.
+    </video>
+</div>
+
 </body>
 </html>
 
