@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Studio Editor</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <style>
+    :root {
+      --bg-color: #030712;
+      --card-bg: #111827;
+      --accent-blue: #2563eb;
+      --accent-hover: #1d4ed8;
+      --ai-purple: #8b5cf6;
+      --text: #f9fafb;
+      --text-muted: #9ca3af;
+      --border: #1f2937;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', sans-serif; }
+
+    body {
+      background-color: var(--bg-color);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px;
+    }
+
+    header { text-align: center; margin-bottom: 25px; }
+    header h1 { font-size: 1.8rem; font-weight: 800; display: flex; align-items: center; justify-content: center; gap: 10px; }
+    header h1 i { color: var(--accent-blue); }
+
+    .editor-container {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      width: 100%;
+      max-width: 900px;
+      padding: 25px;
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 25px;
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
+    }
+
+    @media (min-width: 768px) { .editor-container { grid-template-columns: 1fr 300px; } }
+
+    .preview-area {
+      background: #000;
+      border: 2px dashed var(--border);
+      border-radius: 12px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 400px;
+      position: relative;
+    }
+
+    canvas { max-width: 100%; max-height: 500px; object-fit: contain; }
+
+    .upload-placeholder { text-align: center; color: var(--text-muted); cursor: pointer; }
+    .upload-placeholder i { font-size: 3.5rem; color: var(--accent-blue); margin-bottom: 12px; }
+
+    .controls-panel { display: flex; flex-direction: column; gap: 20px; }
+
+    .section-title {
+      font-size: 0.85rem;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      letter-spacing: 1px;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 8px;
+    }
+
+    .filter-group { display: flex; flex-direction: column; gap: 8px; }
+    .filter-group label { display: flex; justify-content: space-between; font-size: 0.85rem; }
+    .filter-group span { color: var(--accent-blue); }
+
+    input[type="range"] { width: 100%; accent-color: var(--accent-blue); cursor: pointer; }
+
+    .btn {
+      background: #1f2937;
+      color: var(--text);
+      border: none;
+      padding: 12px;
+      border-radius: 10px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: all 0.2s ease;
+    }
+
+    .btn:hover { background: #374151; }
+
+    .btn-ai {
+      background: linear-gradient(135deg, var(--ai-purple), var(--accent-blue));
+      color: white;
+      width: 100%;
+    }
+
+    .btn-primary { background: var(--accent-blue); color: white; width: 100%; }
+    .btn-primary:hover { background: var(--accent-hover); }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1><i class="fa-solid fa-microchip"></i> AI Studio Editor</h1>
+  </header>
+
+  <div class="editor-container">
+    
+    <div class="preview-area" id="dropArea">
+      <div class="upload-placeholder" onclick="document.getElementById('fileInput').click()">
+        <i class="fa-solid fa-cloud-arrow-up"></i>
+        <p>Click to Upload Image</p>
+      </div>
+      <canvas id="canvas" style="display: none;"></canvas>
+      <input type="file" id="fileInput" accept="image/*" style="display: none;">
+    </div>
+
+    <div class="controls-panel">
+      
+      <div class="section-title">⚡ AI Transformation</div>
+      <button class="btn btn-ai" onclick="applyArtStyleAI()">
+        <i class="fa-solid fa-palette"></i> Apply AI Art Style
+      </button>
+
+      <div class="section-title">🎛️ Basic Adjustments</div>
+
+      <div class="filter-group">
+        <label>Brightness <span id="brightVal">100%</span></label>
+        <input type="range" id="brightness" min="0" max="200" value="100">
+      </div>
+
+      <div class="filter-group">
+        <label>Contrast <span id="contrastVal">100%</span></label>
+        <input type="range" id="contrast" min="0" max="200" value="100">
+      </div>
+
+      <div class="filter-group">
+        <label>Saturation <span id="saturateVal">100%</span></label>
+        <input type="range" id="saturate" min="0" max="200" value="100">
+      </div>
+
+      <button class="btn" onclick="rotateImage()"><i class="fa-solid fa-rotate-right"></i> Rotate 90°</button>
+      <button class="btn" onclick="resetFilters()"><i class="fa-solid fa-rotate-left"></i> Reset</button>
+      <button class="btn btn-primary" onclick="downloadImage()"><i class="fa-solid fa-download"></i> Download Image</button>
+
+    </div>
+  </div>
+
+  <script>
+    const fileInput = document.getElementById('fileInput');
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    const placeholder = document.querySelector('.upload-placeholder');
+    let img = new Image();
+    let rotation = 0;
+
+    const brightness = document.getElementById('brightness');
+    const contrast = document.getElementById('contrast');
+    const saturate = document.getElementById('saturate');
+
+    fileInput.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          img.onload = () => {
+            canvas.width = img.width; canvas.height = img.height;
+            applyFilters();
+            placeholder.style.display = 'none';
+            canvas.style.display = 'block';
+          };
+          img.src = event.target.result;
+        };
+        reader.readAsDataURL(file);
+      }
+    });
+
+    function applyFilters() {
+      if (!img.src) return;
+      document.getElementById('brightVal').innerText = brightness.value + '%';
+      document.getElementById('contrastVal').innerText = contrast.value + '%';
+      document.getElementById('saturateVal').innerText = saturate.value + '%';
+
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.save();
+      ctx.translate(canvas.width / 2, canvas.height / 2);
+      ctx.rotate((rotation * Math.PI) / 180);
+      ctx.filter = `brightness(${brightness.value}%) contrast(${contrast.value}%) saturate(${saturate.value}%)`;
+      ctx.drawImage(img, -canvas.width / 2, -canvas.height / 2);
+      ctx.restore();
+    }
+
+    function applyArtStyleAI() {
+      if (!img.src) return;
+      const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const data = imgData.data;
+      for (let i = 0; i < data.length; i += 4) {
+        data[i]     = Math.floor(data[i] / 64) * 64;
+        data[i + 1] = Math.floor(data[i + 1] / 64) * 64;
+        data[i + 2] = Math.floor(data[i + 2] / 64) * 64;
+      }
+      ctx.putImageData(imgData, 0, 0);
+    }
+
+    [brightness, contrast, saturate].forEach(s => s.addEventListener('input', applyFilters));
+    function rotateImage() { rotation = (rotation + 90) % 360; applyFilters(); }
+    function resetFilters() { brightness.value=100; contrast.value=100; saturate.value=100; rotation=0; applyFilters(); }
+    function downloadImage() { const link = document.createElement('a'); link.download = 'ai-art.png'; link.href = canvas.toDataURL(); link.click(); }
+  </script>
+</body>
+</html>
+
